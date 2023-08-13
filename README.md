@@ -11,7 +11,7 @@ DownLord-Ps is a streamlined PowerShell tool designed for downloading large and 
 - Reading of Complex URLs - Extracts filenames from, simple or complex, URLs using multiple methods, such as those Urls found on, HuggingFace or NexusMods.
 - Configuration Persistence - The last used URLs and settings are saved in a configuration file.
 - Download Method Selection - Choose between methods, WebRequest and WebClient Method, with options for automatic toggling and suppress output.
-- File Management - Automatically cleans up configuration and removes entries for, missing or <1MB incomplete files.
+- File Management - Automatically cleans up configuration and removes entries for, missing or <1MB files.
 
 ## INTERFACE
 Output looks like this...
