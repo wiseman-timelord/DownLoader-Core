@@ -3,29 +3,53 @@
 # Display the main menu
 function Display-MainMenu {
     param (
-        $config
+        $config,
+        $temporaryUrl,
+        $menuMode = 'normal' # Default mode is 'normal'
     )
-    if ($null -eq $config) {
+	Clear-Host
+	if ($null -eq $config) {
         Write-Host "Config is null!"
         return
     }
-    Write-Host "`n`n                           Main Menu"
+	Write-Host "`n`n                           Main Menu"
     Write-Host "                           -=-=-=-=-`n"
     Write-Host "Recent Downloads:`n"
-    1..9 | ForEach-Object {
-        $key = "filename_$_"
-        if ($config.ContainsKey($key)) {
-            $filename = $config[$key]
-            if ($filename -ne $null -and $filename -ne "Empty") {
-                Write-Host "    $_. $filename"
-            } else {
-                Write-Host "    $_. Empty"
-            }
+    if ($null -ne $temporaryUrl) {
+        Write-Host "    1. $temporaryUrl"
+    }
+    1..8 | ForEach-Object { # Change to 8 to avoid going up to 10
+        $index = $_
+        if ($null -ne $temporaryUrl) {
+            $index++
+        }
+        $key = "filename_$index"
+        $filename = $config[$key]
+        if ($filename -ne $null -and $filename -ne "") {
+            Write-Host "    $index. $filename"
         } else {
-            Write-Host "    $_. Empty"
+            Write-Host "    $index. Empty"
         }
     }
-    Write-Host -NoNewline "`n`nNew URL = 0, Continue = 1-9, Refresh = r, Setup = s, Quit = q :"
+
+    switch ($menuMode) {
+        'normal' {
+            if ($null -eq $temporaryUrl) {
+                Write-Host -NoNewline "`n`nNew URL = 0, Continue = 1-9, Refresh = r, Setup = s, Quit = q :"
+            } else {
+                Write-Host ""
+            }
+        }
+        'extracting' {
+            Write-Host "`nExtracting filename from URL. Please wait..."
+        }
+        'downloading' {
+            Write-Host "`nDownloads are in progress. Please wait..."
+        }
+        default {
+            Write-Host "`nUnknown menu mode."
+        }
+    }
 }
 
 # Display the setup menu

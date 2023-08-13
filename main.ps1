@@ -10,57 +10,6 @@ $configFile = "config.psd1"
 # Define the Downloads directory
 $DownloadsPath = "Downloads"
 
-# Update configuration
-function Update-Config {
-    param (
-        [hashtable]$config,
-        [string]$filename,
-        [string]$url
-    )
-    1..9 | ForEach-Object {
-        if ($config["filename_$_"] -eq $filename -and $config["url_$_"] -eq $url) {
-            Write-Host "Entry for $filename already exists at position $_."
-            return $true
-        }
-    }
-    1..9 | ForEach-Object {
-        if ($config["filename_$_"] -eq 'Empty') {
-            $config["filename_$_"] = $filename
-            $config["url_$_"] = $url
-            Save-Config -Config $config
-            return $true
-        }
-    }
-    9..2 | ForEach-Object {
-        $config["filename_$_"] = $config["filename_$($_ - 1)"]
-        $config["url_$_"] = $config["url_$($_ - 1)"]
-    }
-    $config["filename_1"] = $filename
-    $config["url_1"] = $url
-    Save-Config -Config $config
-    return $true
-}
-
-# Maintain files at the start of the program
-function Maintain-Files {
-    param (
-        [hashtable]$config
-    )
-    1..9 | ForEach-Object {
-        $filenameKey = "filename_$_"
-        $urlKey = "url_$_"
-        $filename = $config[$filenameKey]
-        if (-Not [string]::IsNullOrEmpty($filename)) {
-            $filePath = Join-Path $DownloadsPath $filename
-            if (-Not (Test-Path $filePath)) {
-                $config[$filenameKey] = ''
-                $config[$urlKey] = ''
-            }
-        }
-    }
-    Save-Config -Config $config
-}
-
 # function to organize download
 function Prompt-ForDownload {
     $config = Load-Config
@@ -68,14 +17,15 @@ function Prompt-ForDownload {
         Write-Host "Configuration is null! Please check the configuration file."
         return
     }
-    Maintain-Files -Config $config
+    Clean-Config -Config $config # Clean up the configuration based on existing files
+    $temporaryUrl = $null
     while ($true) {
         try {
-            Display-MainMenu $config
+            Display-MainMenu $config $temporaryUrl
             $choice = Read-Host
             switch ($choice.ToLower()) {
                 's' { Setup-Menu; continue }
-                'r' { Maintain-Files -Config $config; Update-Config; continue } # Added refresh option
+                'r' { Clean-Config -Config $config; continue } # Call Clean-Config to refresh
                 'q' { Write-Host "Quitting..."; return }
                 default {
                     if ($choice -match '^\d$' -and [int]$choice -ge 0 -and [int]$choice -le 9) {
@@ -84,17 +34,15 @@ function Prompt-ForDownload {
                             if ($url.ToLower() -eq "b") {
                                 continue
                             }
+                            $temporaryUrl = $url # Store the temporary URL
+                            $filename = ExtractFileName -url $url # Extract filename
+                            Update-Config -Config $config -Filename $filename -Url $url
+                            $startPosition = 0
                         }
                         else {
                             $urlKey = "url_$choice"
                             $url = $config.$urlKey
-                        }
-                        if (Validate-Input $url) {
                             $filename = ExtractFileName -url $url
-                            if (-Not $filename) {
-                                Write-Host "Unable to extract filename from the URL. Please try again."
-                                continue
-                            }
                             $filePath = Join-Path $DownloadsPath $filename
                             if (Test-Path $filePath) {
                                 $fileSize = (Get-Item $filePath).Length / 1MB
@@ -113,11 +61,15 @@ function Prompt-ForDownload {
                             } else {
                                 $startPosition = 0
                             }
-                            $updateSuccess = Update-Config -Config $config -Filename $filename -Url $url
-                            if ($updateSuccess) {
-                                Download-File -RemoteUrl $url -OutPath $DownloadsPath -Config $config -Filename $filename -StartPosition $startPosition
-                                Write-Host "Download complete for file: $filename"
+                        }
+                        if (Validate-Input $url) {
+                            if (-Not $filename) {
+                                Write-Host "Unable to extract filename from the URL. Please try again."
+                                continue
                             }
+                            $temporaryUrl = $null # Clear the temporary URL
+                            Download-File -RemoteUrl $url -OutPath $DownloadsPath -Config $config -Filename $filename -StartPosition $startPosition
+                            Write-Host "Download complete for file: $filename"
                             continue
                         }
                         Write-Host "Invalid choice. Please try again."
@@ -150,6 +102,68 @@ function Validate-Input {
         Write-Host "Invalid URL format. Please try again."
         return $false
     }
+}
+
+# Maintain, keys and downloads
+function Clean-Config {
+    param (
+        [hashtable]$config
+    )
+
+    1..9 | ForEach-Object {
+        $filenameKey = "filename_$_"
+        $urlKey = "url_$_"
+        $filename = $config[$filenameKey]
+        $filePath = Join-Path $DownloadsPath $filename
+
+        if ($filename -ne $null -and $filename -ne "") {
+            if (-Not (Test-Path $filePath)) {
+                Write-Host "File $filename not found in Downloads directory. Removing from configuration."
+                $config[$filenameKey] = $null
+                $config[$urlKey] = $null
+            } else {
+                $fileSize = (Get-Item $filePath).Length / 1MB
+                if ($fileSize -lt 1) {
+                    Write-Host "File $filename is, in .\Downloads and less than 1MB."
+                    Write-Host "Removing, files and entries, for $filename..."
+                    Remove-Item $filePath -Force -Confirm:$false
+                    $config[$filenameKey] = $null
+                    $config[$urlKey] = $null
+                }
+            }
+        }
+    }
+
+    Save-Config -Config $config
+}
+
+# Update configuration
+function Update-Config {
+    param (
+        [hashtable]$config,
+        [string]$filename,
+        [string]$url
+    )
+
+    # Check if the entry already exists
+    1..9 | ForEach-Object {
+        if ($config["filename_$_"] -eq $filename -and $config["url_$_"] -eq $url) {
+            Write-Host "Entry for $filename already exists at position $_."
+            return $true
+        }
+    }
+
+    # Shift existing entries down by one position
+    9..2 | ForEach-Object {
+        $config["filename_$_"] = $config["filename_$($_ - 1)"]
+        $config["url_$_"] = $config["url_$($_ - 1)"]
+    }
+
+    # Place the new URL and filename at the first position
+    $config["filename_1"] = $filename
+    $config["url_1"] = $url
+    Save-Config -Config $config
+    return $true
 }
 
 # Load configuration

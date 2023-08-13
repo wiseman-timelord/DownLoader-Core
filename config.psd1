@@ -2,7 +2,7 @@
     Retries = 7
     Chunk = '4096'
     Method = 'WebRequest'
-    Automatic = 'True'
+    Automatic = 'False'
     Suppress = 'True'
     FileName_1 = ''
     Url_1 = ''

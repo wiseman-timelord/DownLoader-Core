@@ -12,16 +12,16 @@ function Download-File {
         $StartPosition = 0
     )
     $DestinationPath = Join-Path $OutPath $Filename
-    $retries = $Config['retries']
-    $method = $Config['method'] # Initialize with the method from the configuration
+    $retries = $Config['Retries']
+    $method = $Config['Method'] # Initialize with the method from the configuration
     $Suppress = $Config['Suppress']
     $success = $false
 
     while ($retries -gt 0 -and -not $success) {
-        if ($Config['automatic'] -eq 'True') { # Check if automatic mode is enabled
+        if ($Config['Automatic'] -eq 'True') { # Check if automatic mode is enabled
             Write-Host "Using method: $method" # Indicate the method being used
             if ($method -eq 'WebRequest') {
-                $success = InvokeWebRequestMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -StartPosition $StartPosition -ChunkSize $Config['chunk'] -Config $Config -Filename $Filename -Suppress $Suppress
+                $success = InvokeWebRequestMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -StartPosition $StartPosition -ChunkSize $Config['Chunk'] -Config $Config -Filename $Filename -Suppress $Suppress
             } else {
                 $success = WebClientMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -Suppress $Suppress
             }
@@ -29,7 +29,7 @@ function Download-File {
             $method = if ($method -eq 'WebRequest') { 'WebClient' } else { 'WebRequest' }
         } elseif ($method -eq 'WebRequest') {
             Write-Host "Using method: WebRequest" # Indicate the method being used
-            $success = InvokeWebRequestMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -StartPosition $StartPosition -ChunkSize $Config['chunk'] -Config $Config -Filename $Filename -Suppress $Suppress
+            $success = InvokeWebRequestMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -StartPosition $StartPosition -ChunkSize $Config['Chunk'] -Config $Config -Filename $Filename -Suppress $Suppress
         } else {
             Write-Host "Using method: WebClient" # Indicate the method being used
             $success = WebClientMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -Suppress $Suppress
@@ -45,7 +45,7 @@ function Download-File {
     return $success
 }
 
-# Function to download file using Invoke-WebRequest
+# Function to download file using WebRequest
 function InvokeWebRequestMethod {
     param (
         $RemoteUrl,
@@ -54,7 +54,7 @@ function InvokeWebRequestMethod {
         $ChunkSize,
         $Config,
         $Filename,
-		$Suppress
+        $Suppress
     )
     try {
         $headers = @{}
@@ -62,20 +62,31 @@ function InvokeWebRequestMethod {
             $headers["Range"] = "bytes=$StartPosition-"
         }
         if ($Suppress -eq 'True') {
+            $ProgressPreference = 'SilentlyContinue'
             $response = Invoke-WebRequest -Uri $RemoteUrl -Method Get -Headers $headers -UseBasicParsing
-            $response | Out-Null
         } else {
+            $ProgressPreference = 'Continue'
             $response = Invoke-WebRequest -Uri $RemoteUrl -Method Get -Headers $headers -UseBasicParsing
         }
         $fileStream = [System.IO.File]::OpenWrite($DestinationPath)
         $fileStream.Seek($StartPosition, [System.IO.SeekOrigin]::Begin)
         $buffer = New-Object byte[] $ChunkSize
         $totalRead = $StartPosition
-        $responseStream = $response.Content.ReadAsStream()
+        $totalSize = $response.Content.Length
+        $responseStream = New-Object System.IO.MemoryStream
+        $responseStream.Write($response.Content, 0, $totalSize)
+        $responseStream.Position = 0
         do {
             $read = $responseStream.Read($buffer, 0, $ChunkSize)
             $fileStream.Write($buffer, 0, $read)
             $totalRead += $read
+
+            # Calculate progress percentage
+            $progress = ($totalRead / $totalSize) * 100
+
+            # Update progress bar
+            Write-Progress -PercentComplete $progress -Status "Downloading" -Activity "$Filename"
+
         } while ($read -gt 0)
         $fileStream.Close()
         $responseStream.Close()
@@ -96,15 +107,23 @@ function WebClientMethod {
     )
     try {
         $webClient = New-Object System.Net.WebClient
-        if ($Suppress -eq "True") {
-            $webClient.DownloadFile($RemoteUrl, $DestinationPath) | Out-Null
-        } else {
-            $webClient.DownloadFile($RemoteUrl, $DestinationPath)
+
+        # Register event handler for download progress only if Suppress is not True
+        if ($Suppress -ne "True") {
+            Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
+                Write-Progress -PercentComplete $EventArgs.ProgressPercentage -Status "Downloading" -Activity $RemoteUrl
+            }
         }
+
+        $webClient.DownloadFile($RemoteUrl, $DestinationPath)
+
         $downloadSuccess = "True"
     } catch {
         Write-Host "An error occurred during download: $_"
         $downloadSuccess = "False"
+    } finally {
+        # Unregister the event when done
+        Get-EventSubscriber | Where-Object { $_.SourceObject -eq $webClient } | Unregister-Event
     }
     return $downloadSuccess
 }
