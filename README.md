@@ -19,9 +19,9 @@ DownLord-Ps is a streamlined PowerShell tool designed for downloading large and 
 
 ## 3 Methods
 DownLord-Ps utilizes three different methods for downloading files...
-- **1. WebRequest Method**: Utilizes the "Invoke-WebRequest" cmdlet, content is read into a memory stream and then written to the disk in chunks, allowing for download resumption.
-- **2. WebClient Method**: Utilizes the "System.Net.WebClient" class, to download files directly to the destination path on the disk. This method, is simpler and does not provide chunking/resume.
-- **3. BITS_Service Method**: Utilizes the "B.I.T.S." service for resilient file transfers, handling network interruptions, and resuming downloads, but requres the service to be, Manual or Automatic.
+- **1. WebRequest Method**: Utilizes the "Invoke-WebRequest" cmdlet, reads content into memory and writes to disk in chunks, enabling download resumption.
+- **2. WebClient Method**: Utilizes the "System.Net.WebClient" class, downloads files directly to disk without chunking or resume capability.
+- **3. BITS_Service Method**: Utilizes the "B.I.T.S." service, handles network interruptions and resumes downloads, but requires the service to be set to Manual or Automatic.
 
 ## INTERFACE
 Output looks like this...
