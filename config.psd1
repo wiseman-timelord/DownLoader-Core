@@ -1,8 +1,7 @@
 @{
-    Retries = 7
-    Chunk = '4096'
-    Method = 'WebRequest'
-    Automatic = 'False'
+    Retries = 10
+    Chunk = 4096
+    Method = 'WebClient'
     Suppress = 'True'
     FileName_1 = ''
     Url_1 = ''

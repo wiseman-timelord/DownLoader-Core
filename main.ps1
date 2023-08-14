@@ -17,7 +17,7 @@ function Prompt-ForDownload {
         Write-Host "Configuration is null! Please check the configuration file."
         return
     }
-    Clean-Config -Config $config # Clean up the configuration based on existing files
+    Clean-Config -Config $config
     $temporaryUrl = $null
     while ($true) {
         try {
@@ -25,7 +25,7 @@ function Prompt-ForDownload {
             $choice = Read-Host
             switch ($choice.ToLower()) {
                 's' { Setup-Menu; continue }
-                'r' { Clean-Config -Config $config; continue } # Call Clean-Config to refresh
+                'r' { Clean-Config -Config $config; continue }
                 'q' { Write-Host "Quitting..."; return }
                 default {
                     if ($choice -match '^\d$' -and [int]$choice -ge 0 -and [int]$choice -le 9) {
@@ -34,8 +34,8 @@ function Prompt-ForDownload {
                             if ($url.ToLower() -eq "b") {
                                 continue
                             }
-                            $temporaryUrl = $url # Store the temporary URL
-                            $filename = ExtractFileName -url $url # Extract filename
+                            $temporaryUrl = $url
+                            $filename = ExtractFileName -url $url
                             Update-Config -Config $config -Filename $filename -Url $url
                             $startPosition = 0
                         }
@@ -67,7 +67,7 @@ function Prompt-ForDownload {
                                 Write-Host "Unable to extract filename from the URL. Please try again."
                                 continue
                             }
-                            $temporaryUrl = $null # Clear the temporary URL
+                            $temporaryUrl = $null
                             Download-File -RemoteUrl $url -OutPath $DownloadsPath -Config $config -Filename $filename -StartPosition $startPosition
                             Write-Host "Download complete for file: $filename"
                             continue
@@ -109,13 +109,11 @@ function Clean-Config {
     param (
         [hashtable]$config
     )
-
     1..9 | ForEach-Object {
         $filenameKey = "filename_$_"
         $urlKey = "url_$_"
         $filename = $config[$filenameKey]
         $filePath = Join-Path $DownloadsPath $filename
-
         if ($filename -ne $null -and $filename -ne "") {
             if (-Not (Test-Path $filePath)) {
                 Write-Host "File $filename not found in Downloads directory. Removing from configuration."
@@ -133,7 +131,6 @@ function Clean-Config {
             }
         }
     }
-
     Save-Config -Config $config
 }
 
@@ -144,22 +141,16 @@ function Update-Config {
         [string]$filename,
         [string]$url
     )
-
-    # Check if the entry already exists
     1..9 | ForEach-Object {
         if ($config["filename_$_"] -eq $filename -and $config["url_$_"] -eq $url) {
             Write-Host "Entry for $filename already exists at position $_."
             return $true
         }
     }
-
-    # Shift existing entries down by one position
     9..2 | ForEach-Object {
         $config["filename_$_"] = $config["filename_$($_ - 1)"]
         $config["url_$_"] = $config["url_$($_ - 1)"]
     }
-
-    # Place the new URL and filename at the first position
     $config["filename_1"] = $filename
     $config["url_1"] = $url
     Save-Config -Config $config
@@ -169,11 +160,16 @@ function Update-Config {
 # Load configuration
 function Load-Config {
     if (Test-Path $configFile) {
-        return Import-PowerShellDataFile -Path $configFile
+        $config = Import-PowerShellDataFile -Path $configFile
+        if (-not $config.ContainsKey('Method')) {
+            $config['Method'] = 'BITS_Service' # Default method if not found in the config file
+        }
+        return $config
     } else {
         Write-Host "Configuration file not found! Using default configuration."
         return @{
             retries = 3
+            Method = 'BITS_Service' # Default method if config file not found
         }
     }
 }
@@ -183,10 +179,11 @@ function Save-Config {
     param (
         [hashtable]$config
     )
+    $configFile = "config.psd1"
     $content = "@{`n"
-    $keysOrder = @('Retries', 'Chunk', 'Method', 'Automatic', 'Suppress', 'FileName_1', 'Url_1', 'FileName_2', 'Url_2', 'FileName_3', 'Url_3', 'FileName_4', 'Url_4', 'FileName_5', 'Url_5', 'FileName_6', 'Url_6', 'FileName_7', 'Url_7', 'FileName_8', 'Url_8', 'FileName_9', 'Url_9')
+    $keysOrder = @('Retries', 'Chunk', 'Method', 'Suppress', 'FileName_1', 'Url_1', 'FileName_2', 'Url_2', 'FileName_3', 'Url_3', 'FileName_4', 'Url_4', 'FileName_5', 'Url_5', 'FileName_6', 'Url_6', 'FileName_7', 'Url_7', 'FileName_8', 'Url_8', 'FileName_9', 'Url_9')
     $keysOrder | ForEach-Object {
-        if ($_ -eq 'retries') {
+        if ($_ -eq 'retries' -or $_ -eq 'Chunk') {
             $content += "    $_ = $($config[$_])`n"
         } else {
             $content += "    $_ = '$($config[$_])'`n"

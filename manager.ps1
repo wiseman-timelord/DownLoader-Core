@@ -13,36 +13,55 @@ function Download-File {
     )
     $DestinationPath = Join-Path $OutPath $Filename
     $retries = $Config['Retries']
-    $method = $Config['Method'] # Initialize with the method from the configuration
+    $method = $Config['Method']
     $Suppress = $Config['Suppress']
     $success = $false
 
     while ($retries -gt 0 -and -not $success) {
-        if ($Config['Automatic'] -eq 'True') { # Check if automatic mode is enabled
-            Write-Host "Using method: $method" # Indicate the method being used
-            if ($method -eq 'WebRequest') {
+        switch ($method) {
+            'WebRequest' {
+                Write-Host "Using method: WebRequest"
                 $success = InvokeWebRequestMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -StartPosition $StartPosition -ChunkSize $Config['Chunk'] -Config $Config -Filename $Filename -Suppress $Suppress
-            } else {
+            }
+            'WebClient' {
+                Write-Host "Using method: WebClient"
                 $success = WebClientMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -Suppress $Suppress
             }
-            # Toggle between WebRequest and WebClient for Automatic method
-            $method = if ($method -eq 'WebRequest') { 'WebClient' } else { 'WebRequest' }
-        } elseif ($method -eq 'WebRequest') {
-            Write-Host "Using method: WebRequest" # Indicate the method being used
-            $success = InvokeWebRequestMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -StartPosition $StartPosition -ChunkSize $Config['Chunk'] -Config $Config -Filename $Filename -Suppress $Suppress
-        } else {
-            Write-Host "Using method: WebClient" # Indicate the method being used
-            $success = WebClientMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -Suppress $Suppress
+            'BITS_Service' {
+                Write-Host "Using method: BITS_Service"
+                $success = BITSMethod -RemoteUrl $RemoteUrl -DestinationPath $DestinationPath -Suppress $Suppress
+            }
         }
         $retries--
     }
 
     if ($retries -eq 0 -and -not $success) {
         Write-Host "Retries exhausted. Returning to Main Menu."
-        return $false # Return false if download failed
+        return $false
     }
 
     return $success
+}
+
+function BITSMethod {
+    param (
+        $RemoteUrl,
+        $DestinationPath,
+        $Suppress
+    )
+    try {
+        if ($Suppress -eq 'True') {
+            $ProgressPreference = 'SilentlyContinue'
+        } else {
+            $ProgressPreference = 'Continue'
+        }
+        Start-BitsTransfer -Source $RemoteUrl -Destination $DestinationPath
+        $downloadSuccess = "True"
+    } catch {
+        Write-Host "Error downloading file using BITS_Service: $_"
+        $downloadSuccess = "False"
+    }
+    return $downloadSuccess
 }
 
 # Function to download file using WebRequest
@@ -80,13 +99,8 @@ function InvokeWebRequestMethod {
             $read = $responseStream.Read($buffer, 0, $ChunkSize)
             $fileStream.Write($buffer, 0, $read)
             $totalRead += $read
-
-            # Calculate progress percentage
             $progress = ($totalRead / $totalSize) * 100
-
-            # Update progress bar
             Write-Progress -PercentComplete $progress -Status "Downloading" -Activity "$Filename"
-
         } while ($read -gt 0)
         $fileStream.Close()
         $responseStream.Close()
@@ -107,23 +121,16 @@ function WebClientMethod {
     )
     try {
         $webClient = New-Object System.Net.WebClient
-
-        # Register event handler for download progress only if Suppress is not True
         if ($Suppress -ne "True") {
             Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -Action {
                 Write-Progress -PercentComplete $EventArgs.ProgressPercentage -Status "Downloading" -Activity $RemoteUrl
             }
         }
-
         $webClient.DownloadFile($RemoteUrl, $DestinationPath)
-
         $downloadSuccess = "True"
     } catch {
-        Write-Host "An error occurred during download: $_"
+        Write-Host "Error downloading file: $_"
         $downloadSuccess = "False"
-    } finally {
-        # Unregister the event when done
-        Get-EventSubscriber | Where-Object { $_.SourceObject -eq $webClient } | Unregister-Event
     }
     return $downloadSuccess
 }
@@ -147,7 +154,6 @@ function ExtractFileName {
             return [System.Net.WebUtility]::UrlDecode($filename)
         }
 		Write-Host "Failed."
-		
         Write-Host "Trying content disposition method..."
         if ($queryParameters["response-content-disposition"]) {
             $contentDisposition = $queryParameters["response-content-disposition"]
@@ -165,7 +171,6 @@ function ExtractFileName {
             }
         }
         Write-Host "Failed."
-
         Write-Host "Trying query parameter filename method..."
         if ($queryParameters["filename"]) {
             Write-Host "FileName is $filename"
@@ -173,7 +178,6 @@ function ExtractFileName {
             return [System.Net.WebUtility]::UrlDecode($queryParameters["filename"])
         }
         Write-Host "Failed."
-
         Write-Host "Trying fragment method..."
         if ($uri.Fragment -match 'filename\*?=(.*)') {
             $filename = $matches[1].Split("''")[-1]
@@ -182,7 +186,6 @@ function ExtractFileName {
             return [System.Net.WebUtility]::UrlDecode($filename)
         }
         Write-Host "Failed."
-
         Write-Host "Trying extension matching method..."
         $extensions = ".zip, .7z, .bin, .iso, .tar, .rar, .deb, .rpm, .mp4, .mpg, .mpeg, .ace, .bz2, .cab, .dmg, .gz, .lha, .paq, .pea, .udf, .wim, .zst, .jar, .xz, .tgz"
         $regexPattern = [regex]::Escape($extensions).Replace(",", "|").Replace(" ", "")
@@ -193,8 +196,6 @@ function ExtractFileName {
             return [System.Net.WebUtility]::UrlDecode($filename)
         }
         Write-Host "Failed."
-
-        # Fallback mechanism to extract filename from the last part of the URL path
         Write-Host "Trying fallback method..."
         $filename = $uri.Segments[-1]
         if ($filename -ne "") {
@@ -202,7 +203,6 @@ function ExtractFileName {
 			Write-Host ""
             return [System.Net.WebUtility]::UrlDecode($filename)
         }
-
         Write-Host "Unable to extract filename."
         return $null
     }
@@ -211,22 +211,3 @@ function ExtractFileName {
         return $null
     }
 }
-
-function Save-Config {
-    param (
-        [hashtable]$config
-    )
-    $configFile = "config.psd1"
-    $content = "@{`n"
-    $keysOrder = @('Retries', 'Chunk', 'Method', 'Automatic', 'Suppress', 'FileName_1', 'Url_1', 'FileName_2', 'Url_2', 'FileName_3', 'Url_3', 'FileName_4', 'Url_4', 'FileName_5', 'Url_5', 'FileName_6', 'Url_6', 'FileName_7', 'Url_7', 'FileName_8', 'Url_8', 'FileName_9', 'Url_9')
-    $keysOrder | ForEach-Object {
-        if ($_ -eq 'retries' -or $_ -eq 'chunk') {
-            $content += "    $_ = $($config[$_])`n"
-        } else {
-            $content += "    $_ = '$($config[$_])'`n"
-        }
-    }
-    $content += "}"
-    Set-Content -Path $configFile -Value $content
-}
-

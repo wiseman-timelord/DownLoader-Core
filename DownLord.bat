@@ -37,12 +37,12 @@ REM APPLICATION_SECTION
 :: ASCII_ART/INTRO/READ_RETRIES
 cls
 echo.
-echo "________                      .____                    .___"
-echo "\______ \   ______  _  ______ |    |    ___________  __| _/"
-echo " |    |  \ /  _ \ \/ \/ /    \|    |   /  _ \_  __ \/ __ | "
-echo " |    \   (  <_> )     /   |  \    |__(  <_> )  | \/ /_/ | "
-echo "/_______  /\____/ \/\_/|___|  /_______ \____/|__|  \____ | "
-echo "        \/                  \/        \/                \/ "
+echo "   ________                      .____                    .___"
+echo "   \______ \   ______  _  ______ |    |    ___________  __| _/"
+echo "    |    |  \ /  _ \ \/ \/ /    \|    |   /  _ \_  __ \/ __ | "
+echo "    |    \   (  <_> )     /   |  \    |__(  <_> )  | \/ /_/ | "
+echo "    /______  /\____/ \/\_/|___|  /_______ \____/|__|  \____ | "
+echo "           \/                  \/        \/                \/ "
 echo.
 for /f "delims=" %%a in ('powershell -command "$config = Import-PowerShellDataFile -Path 'config.psd1'; $config['retries']"') do set "max_retries=%%a"
 set "message=We will now insist upon Downloading your files %max_retries% times..."
