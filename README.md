@@ -1,6 +1,5 @@
 # DownLord-Ps
-Status: Pre-release 
-Needs work on progress indication, the challenge is suppressing output from cmdlet/class at same time as having other code doing stats at same time.
+Status: Pre-release - Needs work on progress indication, the challenge is suppressing output from cmdlet/class at same time as having other code doing stats at same time.
 
 ## Description
 DownLord-Ps is a streamlined PowerShell tool designed for downloading large and essential files, such as language models, especially on unreliable connections. It offers a customizable options menu with persistent settings, supports download resumption, and automatically maintains a history, removing items from its list when manually deleted from the folder. Unlike browser-based downloads, DownLord-Ps ensures that users don't return hours later to find incomplete downloads or accidentally cancel them. It's tailored for substantial downloads rather than smaller files that can be handled by the browser.
