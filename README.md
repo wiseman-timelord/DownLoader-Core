@@ -1,5 +1,6 @@
 # DownLord-Ps
-Status: Pre-release - Needs work on progress indication, the challenge is suppressing output from cmdlet/class at same time as having other code doing stats at same time.
+Status: Pre-release 
+Needs work on progress indication, the challenge is suppressing output from cmdlet/class at same time as having other code doing stats at same time.
 
 ## Description
 DownLord-Ps is a streamlined PowerShell tool designed for downloading large and essential files, such as language models, especially on unreliable connections. It offers a customizable options menu with persistent settings, supports download resumption, and automatically maintains a history, removing items from its list when manually deleted from the folder. Unlike browser-based downloads, DownLord-Ps ensures that users don't return hours later to find incomplete downloads or accidentally cancel them. It's tailored for substantial downloads rather than smaller files that can be handled by the browser.
@@ -10,12 +11,17 @@ DownLord-Ps is a streamlined PowerShell tool designed for downloading large and 
 - **Setup Menu**: Configure connection speed, maximum retries, download method, and other settings.
 - **Reading of Complex URLs**: Extracts filenames from simple or complex URLs using multiple methods, such as those URLs found on HuggingFace or NexusMods.
 - **Configuration Persistence**: The last used URLs and settings are saved in a configuration file.
-- **Download Method Selection**: Choose between methods, WebRequest, WebClient, and BITS_Service Method, with options for automatic toggling and suppress output.
+- **Download Method Selection**: Choose between methods, WebRequest, WebClient, and BITS_Service Method, with options for automatic toggling and suppress output. Note, not all features work with all methods.
 - **File Management**: Automatically cleans up configuration and removes entries for missing or <1MB incomplete files.
 - **Automatic Retries**: Configurable retries for downloads, ensuring persistence in case of interruptions.
 - **Interactive Menus**: User-friendly interface with main and setup menus for easy navigation and configuration.
 - **Batch File Support**: Includes a batch file for easy execution and administrative privilege handling.
 
+## 3 Methods
+DownLord-Ps utilizes three different methods for downloading files...
+- **1. WebRequest Method**: Utilizes the "Invoke-WebRequest" cmdlet, content is read into a memory stream and then written to the disk in chunks, allowing for download resumption.
+- **2. WebClient Method**: Utilizes the "System.Net.WebClient" class, to download files directly to the destination path on the disk. This method, is simpler and does not provide chunking/resume.
+- **3. BITS_Service Method**: Utilizes the "B.I.T.S." service for resilient file transfers, handling network interruptions, and resuming downloads, but requres the service to be, Manual or Automatic.
 
 ## INTERFACE
 Output looks like this...
