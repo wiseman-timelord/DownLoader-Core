@@ -1,6 +1,6 @@
 @echo off
-mode 70,80
-mode con:cols=70 lines=3000
+mode 70,30
+REM mode con:cols=70 lines=3000
 setlocal enabledelayedexpansion
 
 REM INITIATION_SECTION
