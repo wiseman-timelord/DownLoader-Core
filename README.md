@@ -66,5 +66,5 @@ New URL = 0, Continue = 1-9, Refresh = r, Setup = s, Quit = q :
 - Internet connection
 - URL linked to file
 
-### DISCLAIMER
-Read "Licence.Txt", its, what its there for and why its supplied with the package.
+## DISCLAIMER
+The "License.Txt" covers, this and relating, stuff.
