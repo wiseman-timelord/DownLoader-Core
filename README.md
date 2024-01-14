@@ -66,5 +66,5 @@ New URL = 0, Continue = 1-9, Refresh = r, Setup = s, Quit = q :
 - Internet connection
 - URL linked to file
 
-## Disclaimer
-"DownLord-Ps" is provided "as is," and the creators make no warranties regarding its use. Users are solely responsible for the content they download and any potential damages to their equipment. The use of "DownLord-Ps" for unauthorized activities is strictly at the user's own risk, and all legal responsibilities lie with the user.
+### DISCLAIMER
+Read "Licence.Txt", its, what its there for and why its supplied with the package.
