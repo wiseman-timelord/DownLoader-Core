@@ -1,5 +1,5 @@
 # DownLoader-Core
-Status: Re-Visiting NOW.
+Status: Re-Visiting NOW, hopefully there will then be release version after.
 
 ### DEVELOPMENT:
 - It will now be, `Powershell Core ~v7.4` and `.net`.
