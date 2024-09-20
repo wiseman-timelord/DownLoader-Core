@@ -3,6 +3,7 @@ Status: Re-Visiting NOW.
 
 ### DEVELOPMENT:
 - Currently Downlord-Py is far-ahead, so the python version will become "DownLord", its the original anyhow, time to re-imagine the powershell version instead. I want a reliable windows downloader, that has no install requirements other than possibly .net, that I would install anyhow.
+- All Menus and handling need, checking over and moving to `interface.ps1`.
 
 ### DONE FOR RELEASE:
 - Refractored scripts.
