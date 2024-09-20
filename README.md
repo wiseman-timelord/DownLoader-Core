@@ -1,8 +1,10 @@
-# DownLord-Ps
+# DownLoader-Core
 Status: Re-Visiting NOW.
 
 ### DEVELOPMENT:
-- Currently Downlord-Py is far-ahead, so the python version will become "DownLord", its the original anyhow, time to re-imagine the powershell version instead. I want a reliable windows downloader, that has no install requirements other than possibly .net, that I would install anyhow.
+- It will now be, `Powershell Core ~v7.4` and `.net`.
+- Currently my other program `Downlord-Py` is far-ahead, so the python version will become "DownLord", its the original anyhow.
+- Time to re-imagine the powershell version instead. I want a, simple and reliable, windows downloader.
 - All Menus and handling need, checking over and moving to `interface.ps1`.
 
 ### DONE FOR RELEASE:
