@@ -1,90 +1,26 @@
 # Script "main.ps1"
 
 # Import required modules
-. .\interface.ps1
-. .\manager.ps1
+. .\scripts\interface.ps1
+. .\scripts\manager.ps1
 
 # Configuration file path
-$configFile = "config.psd1"
-
-# Define the Downloads directory
+$configFile = ".\data\config.psd1"
 $DownloadsPath = "Downloads"
 
-# function to organize download
-function Prompt-ForDownload {
+function Start-DownLordPs {
+    if (-Not (Test-Path $DownloadsPath)) {
+        New-Item -Path $DownloadsPath -ItemType Directory
+    }
     $config = Load-Config
     if ($null -eq $config) {
         Write-Host "Configuration is null! Please check the configuration file."
         return
     }
-    Clean-Config -Config $config
-    $temporaryUrl = $null
-    while ($true) {
-        try {
-            Display-MainMenu $config $temporaryUrl
-            $choice = Read-Host
-            switch ($choice.ToLower()) {
-                's' { Setup-Menu; continue }
-                'r' { Clean-Config -Config $config; continue }
-                'q' { Write-Host "Quitting..."; return }
-                default {
-                    if ($choice -match '^\d$' -and [int]$choice -ge 0 -and [int]$choice -le 9) {
-                        if ([int]$choice -eq 0) {
-                            $url = Read-Host "`nEnter the URL to download (or 'b' to go back)"
-                            if ($url.ToLower() -eq "b") {
-                                continue
-                            }
-                            $temporaryUrl = $url
-                            $filename = ExtractFileName -url $url
-                            Update-Config -Config $config -Filename $filename -Url $url
-                            $startPosition = 0
-                        }
-                        else {
-                            $urlKey = "url_$choice"
-                            $url = $config.$urlKey
-                            $filename = ExtractFileName -url $url
-                            $filePath = Join-Path $DownloadsPath $filename
-                            if (Test-Path $filePath) {
-                                $fileSize = (Get-Item $filePath).Length / 1MB
-                                if ($fileSize -gt 10) {
-                                    Write-Host "Download already completed."
-                                    continue
-                                } else {
-                                    $userChoice = Read-Host "`nFile is incomplete. Press c for Continue Download, r for Restart Download, b for Back to Main Menu :"
-                                    switch ($userChoice.ToLower()) {
-                                        'c' { $startPosition = (Get-Item $filePath).Length }
-                                        'r' { Remove-Item $filePath -Force; $startPosition = 0 }
-                                        'b' { continue }
-                                        default { Write-Host "Invalid choice. Returning to main menu."; continue }
-                                    }
-                                }
-                            } else {
-                                $startPosition = 0
-                            }
-                        }
-                        if (Validate-Input $url) {
-                            if (-Not $filename) {
-                                Write-Host "Unable to extract filename from the URL. Please try again."
-                                continue
-                            }
-                            $temporaryUrl = $null
-                            Download-File -RemoteUrl $url -OutPath $DownloadsPath -Config $config -Filename $filename -StartPosition $startPosition
-                            Write-Host "Download complete for file: $filename"
-                            continue
-                        }
-                        Write-Host "Invalid choice. Please try again."
-                    }
-                }
-            }
-        } catch {
-            Write-Host "An error occurred: $_" -ForegroundColor Red
-            Write-Host "Press any key to return to the main menu..." -ForegroundColor Yellow
-            $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-        }
-    }
+    Show-MainMenu -Config $config
 }
 
-# function to parse URL
+# Function to parse URL
 function Validate-Input {
     param (
         $url
@@ -104,7 +40,7 @@ function Validate-Input {
     }
 }
 
-# Maintain, keys and downloads
+# Clean configuration
 function Clean-Config {
     param (
         [hashtable]$config
@@ -122,8 +58,8 @@ function Clean-Config {
             } else {
                 $fileSize = (Get-Item $filePath).Length / 1MB
                 if ($fileSize -lt 1) {
-                    Write-Host "File $filename is, in .\Downloads and less than 1MB."
-                    Write-Host "Removing, files and entries, for $filename..."
+                    Write-Host "File $filename is in .\Downloads and less than 1MB."
+                    Write-Host "Removing file and entries for $filename..."
                     Remove-Item $filePath -Force -Confirm:$false
                     $config[$filenameKey] = $null
                     $config[$urlKey] = $null
@@ -161,15 +97,13 @@ function Update-Config {
 function Load-Config {
     if (Test-Path $configFile) {
         $config = Import-PowerShellDataFile -Path $configFile
-        if (-not $config.ContainsKey('Method')) {
-            $config['Method'] = 'BITS_Service' # Default method if not found in the config file
-        }
         return $config
     } else {
         Write-Host "Configuration file not found! Using default configuration."
         return @{
             retries = 3
-            Method = 'BITS_Service' # Default method if config file not found
+            Chunk = 4096
+            Suppress = 'False'
         }
     }
 }
@@ -179,11 +113,11 @@ function Save-Config {
     param (
         [hashtable]$config
     )
-    $configFile = "config.psd1"
+    $configFile = ".\data\config.psd1"
     $content = "@{`n"
-    $keysOrder = @('Retries', 'Chunk', 'Method', 'Suppress', 'FileName_1', 'Url_1', 'FileName_2', 'Url_2', 'FileName_3', 'Url_3', 'FileName_4', 'Url_4', 'FileName_5', 'Url_5', 'FileName_6', 'Url_6', 'FileName_7', 'Url_7', 'FileName_8', 'Url_8', 'FileName_9', 'Url_9')
+    $keysOrder = @('Retries', 'Chunk', 'Suppress', 'FileName_1', 'Url_1', 'FileName_2', 'Url_2', 'FileName_3', 'Url_3', 'FileName_4', 'Url_4', 'FileName_5', 'Url_5', 'FileName_6', 'Url_6', 'FileName_7', 'Url_7', 'FileName_8', 'Url_8', 'FileName_9', 'Url_9')
     $keysOrder | ForEach-Object {
-        if ($_ -eq 'retries' -or $_ -eq 'Chunk') {
+        if ($_ -eq 'Retries' -or $_ -eq 'Chunk') {
             $content += "    $_ = $($config[$_])`n"
         } else {
             $content += "    $_ = '$($config[$_])'`n"
@@ -197,4 +131,4 @@ function Save-Config {
 if (-Not (Test-Path $DownloadsPath)) {
     New-Item -Path $DownloadsPath -ItemType Directory
 }
-Prompt-ForDownload
+Start-DownLordPs

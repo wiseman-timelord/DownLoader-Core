@@ -18,6 +18,16 @@ echo.
 echo.
 goto CHANGE_DIR
 
+:: CHECK_AND_CREATE_DOWNLOADS
+if not exist "%~dp0Downloads" (
+    echo Downloads folder not found. Creating it now...
+    mkdir "%~dp0Downloads"
+) else (
+    echo Downloads folder already exists.
+)
+echo.
+echo.
+
 :ADMIN_PROMPT
 echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
 echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
