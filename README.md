@@ -1,6 +1,10 @@
 # DownLord-Ps
-Status: Pre-release 
-* Needs work on progress indication. HuggingFace downloads have stopped working, will need to investigate. Currently priority is my other repositry Llama2Robot. Currently I use Downlord-Py instead, but not currently for HuggingFace.
+Status: Re-Visiting NOW.
+
+## DEVELOPMENT:
+- Needs work on progress indication. 
+- HuggingFace downloads have stopped working, will need to investigate. 
+- Currently Downlord-Py is far-ahead, so the python version will become "DownLord", its the original anyhow, time to re-imagine the powershell version instead.
 
 ## Description
 DownLord-Ps is a streamlined PowerShell tool designed for downloading large and essential files, such as language models, especially on unreliable connections. It offers a customizable options menu with persistent settings, supports download resumption, and automatically maintains a history, removing items from its list when manually deleted from the folder. Unlike browser-based downloads, DownLord-Ps ensures that users don't return hours later to find incomplete downloads or accidentally cancel them. It's tailored for substantial downloads rather than smaller files that can be handled by the browser.
