@@ -10,7 +10,7 @@ function Show-MainMenu {
         Clear-Host
         $header = @"
 $('=' * 120)
-    DownLord-Ps
+    Downloader-Core - Main Menu
 $('=' * 120)
 "@
         Write-Host $header
@@ -104,7 +104,7 @@ function Show-SetupMenu {
         Clear-Host
         $header = @"
 $('=' * 120)
-    DownLord-Ps - Setup Menu
+    Downlord-Core - Setup Menu
 $('=' * 120)
 "@
         Write-Host $header
